@@ -1,9 +1,13 @@
-name: Deploy Node.js App to EC2
+name: Deploy Node.js App with Docker to EC2
 
 on:
   push:
     branches:
       - main
+
+env:
+  REGION: us-east-1  # Set your AWS region here
+  ECR_REPO_NAME: nodejs-app-repo
 
 jobs:
   deploy:
@@ -13,6 +17,22 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Docker Image to ECR
+        env:
+          ECR_URI: ${{ secrets.ECR_URI }}
+        run: |
+          # Build Docker Image
+          docker build -t $ECR_URI:latest .
+          
+          # Tag Image
+          docker tag $ECR_URI:latest $ECR_URI:latest
+
+          # Push Image to ECR
+          docker push $ECR_URI:latest
+
       - name: Install SSH Key
         env:
           KEY: ${{ secrets.EC2_KEY }}
@@ -20,30 +40,21 @@ jobs:
           echo "$KEY" > key.pem
           chmod 600 key.pem
 
-      - name: Deploy to EC2
+      - name: Deploy Docker Container on EC2
         run: |
           EC2_HOST="${{ secrets.EC2_HOST }}"
-
-          # Clean existing app folder and prepare environment
+          
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$EC2_HOST << 'EOF'
-            mkdir -p ~/nodejs-app
-            cd ~/nodejs-app
-            pm2 stop all || true
-            pm2 delete all || true
-            rm -rf *
-            exit
-          EOF
+            # Stop and remove any existing Docker containers
+            docker ps -q --filter "ancestor=$ECR_URI:latest" | xargs -r docker stop
+            docker ps -aq --filter "ancestor=$ECR_URI:latest" | xargs -r docker rm
 
-          # Copy project files to EC2
-          scp -i key.pem -r ./* ubuntu@$EC2_HOST:~/nodejs-app/
+            # Pull the latest image from ECR
+            aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $ECR_URI
+            docker pull $ECR_URI:latest
 
-          # Install dependencies and start the app
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$EC2_HOST << 'EOF'
-            cd ~/nodejs-app
-            npm install
-            NODE_ENV=production pm2 start app.js --name "nodejs-app" || pm2 restart "nodejs-app"
-            pm2 save
-            pm2 list
+            # Run the container
+            docker run -d --name nodejs-app -p 3000:3000 $ECR_URI:latest
           EOF
 
       - name: Clean Up
