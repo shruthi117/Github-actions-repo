@@ -6,8 +6,8 @@ on:
       - main
 
 env:
-  REGION: us-east-1  # Set your AWS region here
-  ECR_REPO_NAME: nodejs-app-repo
+  REGION: ap-south-1
+  ECR_REPO_NAME: githubactions-repo
 
 jobs:
   deploy:
