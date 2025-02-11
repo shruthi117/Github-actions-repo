@@ -19,6 +19,8 @@ jobs:
 
       - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
+        with:
+          region: ${{ env.REGION }}
 
       - name: Build and Push Docker Image to ECR
         env:
@@ -41,6 +43,8 @@ jobs:
           chmod 600 key.pem
 
       - name: Deploy Docker Container on EC2
+        env:
+          REGION: ${{ env.REGION }}
         run: |
           EC2_HOST="${{ secrets.EC2_HOST }}"
           
