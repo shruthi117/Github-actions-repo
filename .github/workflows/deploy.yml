@@ -31,10 +31,14 @@ jobs:
           docker build -t $REPO_NAME .
           docker tag $REPO_NAME:latest $ECR_URI/$REPO_NAME:latest
 
+      - name: Show Docker Images
+        run: |
+          docker images
+
       - name: Push Docker Image to ECR
         run: |
-          docker push 879381243591.dkr.ecr.ap-south-1.amazonaws.com/githubactions-repo:latest
-
+          docker push $ECR_URI/$REPO_NAME:latest
+          
       - name: Set up SSH key for EC2
         run: |
           echo "$EC2_KEY" > ec2_key.pem
