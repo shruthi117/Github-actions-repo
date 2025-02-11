@@ -1,26 +1,26 @@
-name: Deploy Node.js App with Docker to EC2
+name: Push the Docker image to AWS ECR Repo
+  on:
+    push:
+      branches:
+        - main
+  jobs:
+    Build:
+      name: Build
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v2
 
-on:
-  push:
-    branches:
-      - main
+        - name: Configure AWS credentials
+          uses: aws-actions/configure-aws-credentials@v1
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: ap-south-1
 
-env:
-  REGION: ap-south-1
-  ECR_REPO_NAME: githubactions-repo
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Log in to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
-        env:
-          AWS_REGION: ${{ env.REGION }}
+        - name: Login to Amazon ECR
+          id: login-ecr
+          uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build and Push Docker Image to ECR
         env:
