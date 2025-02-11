@@ -45,7 +45,8 @@ jobs:
 
       - name: Push Docker Image to ECR
         run: |
-          docker push $ECR_URI/$REPO_NAME:latest
+          docker push 879381243591.dkr.ecr.ap-south-1.amazonaws.com/githubactions-repo:latest
+
           
       - name: Set up SSH key for EC2
         run: |
