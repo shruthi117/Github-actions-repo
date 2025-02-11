@@ -59,7 +59,7 @@ jobs:
       - name: Deploy Docker Image to EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i ec2_key.pem ubuntu@$SERVER_PUBLIC_IP << 'EOF'
-            docker pull $ECR_URI/$REPO_NAME:latest
-            docker stop $(docker ps -q --filter "ancestor=$ECR_URI/$REPO_NAME:latest") || true
-            docker run -d --rm -p 80:3000 $ECR_URI/$REPO_NAME:latest
+            docker pull 879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest
+            docker stop $(docker ps -q --filter "ancestor=879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest") || true
+            docker run -d --rm -p 80:3000 879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest
           EOF
