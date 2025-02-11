@@ -35,18 +35,17 @@ jobs:
           EOF
 
           # Copy project files to EC2
-          scp -o IdentitiesOnly=yes -i key.pem -r ./* ubuntu@$EC2_HOST:~/nodejs-app/
+          scp -i key.pem -r ./* ubuntu@$EC2_HOST:~/nodejs-app/
 
           # Install dependencies and start the app
-          ssh -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i key.pem ubuntu@$EC2_HOST << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$EC2_HOST << 'EOF'
             cd ~/nodejs-app
-            npm install || { echo "NPM install failed"; exit 1; }
+            npm install
             NODE_ENV=production pm2 start app.js --name "nodejs-app" || pm2 restart "nodejs-app"
             pm2 save
             pm2 list
-            exit
           EOF
 
       - name: Clean Up
         run: |
-          shred -u key.pem
+          rm key.pem
