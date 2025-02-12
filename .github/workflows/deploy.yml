@@ -59,7 +59,15 @@ jobs:
       - name: Deploy Docker Image to EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i ec2_key.pem ubuntu@$SERVER_PUBLIC_IP << 'EOF'
+            # Authenticate with AWS ECR
+            aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin 879381243591.dkr.ecr.ap-south-1.amazonaws.com
+            
+            # Pull latest image from ECR
             sudo docker pull 879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest
-            sudo docker stop $(docker ps -q --filter "ancestor=879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest") || true
-            sudo docker run -d --rm -p 80:3000 879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest
+            
+            # Stop any running container (ignore errors)
+            sudo docker stop \$(sudo docker ps -q --filter "ancestor=879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest") || true
+            
+            # Run new container
+            sudo docker run -d --restart always -p 80:3000 879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest
           EOF
