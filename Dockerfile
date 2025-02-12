@@ -1,20 +1,21 @@
-# Use official Node.js image as base
-FROM node:14
+# Use an official Node.js runtime as the base image
+FROM node:18
 
-# Set working directory
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json first
-COPY package*.json ./
+# Copy package.json and package-lock.json first to leverage Docker caching
+COPY package.json package-lock.json ./
 
-# Install dependencies explicitly
-RUN npm ci --only=production  # ✅ Ensures clean install of exact dependencies
+# Install only production dependencies
+RUN npm ci --only=production
 
-# Copy the rest of the application code
+# Copy the entire application code after dependencies are installed
 COPY . .
 
-# Expose the port
+# Expose the application port
 EXPOSE 3000
 
-# Start the application
+# Define the command to run the application
 CMD ["node", "app.js"]
+
