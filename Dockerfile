@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies explicitly
-RUN npm install --production
+RUN npm ci --only=production  # ✅ Ensures clean install of exact dependencies
 
 # Copy the rest of the application code
 COPY . .
@@ -18,4 +18,3 @@ EXPOSE 3000
 
 # Start the application
 CMD ["node", "app.js"]
-
