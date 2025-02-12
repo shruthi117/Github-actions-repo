@@ -58,19 +58,22 @@ jobs:
 
       - name: Deploy Docker Image to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i ec2_key.pem ubuntu@$SERVER_PUBLIC_IP << 'EOF'
-            # Authenticate with AWS ECR
-            aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin 879381243591.dkr.ecr.ap-south-1.amazonaws.com
-            
-            # Pull latest image from ECR
-            sudo docker pull 879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest
-            
-            # Stop any running container (ignore errors)
-            sudo docker stop $(sudo docker ps -q --filter "ancestor=879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest") || true
+         ssh -o StrictHostKeyChecking=no -i ec2_key.pem ubuntu@$SERVER_PUBLIC_IP << 'EOF'
+         set -e  # Exit script on any error
 
-            # Remove stopped containers
-            sudo docker rm $(sudo docker ps -aq --filter "ancestor=879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest") || true
-            
-            # Run new container
-            sudo docker run -d --restart always -p 80:3000 879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest
-          EOF
+         echo "🔐 Authenticating with AWS ECR..."
+         aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin 879381243591.dkr.ecr.ap-south-1.amazonaws.com
+
+         echo "⬇️ Pulling latest image..."
+         sudo docker pull 879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest
+
+         echo "🛑 Stopping existing container (if running)..."
+         sudo docker stop demorepo-container || true
+
+         echo "🗑 Removing old container (if exists)..."
+         sudo docker rm demorepo-container || true
+
+         echo "🚀 Starting new container..."
+         sudo docker run -d --restart always -p 80:3000 --name demorepo-container 879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest
+         EOF
+
