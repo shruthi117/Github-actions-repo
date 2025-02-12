@@ -1,20 +1,15 @@
 {
-  "name": "github-actions-repo",
+  "name": "nodejs-app",
   "version": "1.0.0",
+  "description": "",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/shruthi117/Github-actions-repo.git"
-  },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/shruthi117/Github-actions-repo/issues"
-  },
-  "homepage": "https://github.com/shruthi117/Github-actions-repo#readme",
-  "description": ""
+  "dependencies": {
+    "express": "^4.21.2"
+  }
 }
