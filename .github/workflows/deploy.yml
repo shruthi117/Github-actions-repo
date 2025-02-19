@@ -16,7 +16,6 @@ jobs:
       S3_BUCKET: "demo-githubactionsbucket"  # Your existing S3 bucket
       CODEDEPLOY_APP: "test-app"  # Your existing CodeDeploy application
       CODEDEPLOY_GROUP: "test-deployment-group"  # Your existing deployment group
-      
 
     steps:
       - name: Checkout Code
@@ -28,6 +27,12 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Set Executable Permissions
+        run: |
+          echo "🔧 Setting executable permissions for scripts and appspec..."
+          chmod +x appspec.yml
+          chmod +x scripts/*.sh
 
       - name: Create Deployment Package
         run: |
