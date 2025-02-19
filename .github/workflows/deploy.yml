@@ -28,6 +28,24 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Login to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build and Push Docker Image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: demorepo  # Change this to your actual ECR repository name
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "🐳 Building Docker image..."
+          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
+          
+          echo "📤 Pushing Docker image to ECR..."
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+          
+          echo "IMAGE_URI=$REGISTRY/$REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+
       - name: Set Executable Permissions
         run: |
           echo "🔧 Setting executable permissions for scripts and appspec..."
