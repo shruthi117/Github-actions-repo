@@ -22,8 +22,8 @@ else
 fi
 
 echo "🛑 Stopping old application (if running)..."
-sudo docker stop myappcontainer || true
-sudo docker rm myappcontainer || true
+sudo docker stop demorepo-container || true
+sudo docker rm demorepo-container || true
 
 #create our working directory if it doesnt exist
 DIR="/home/ubuntu/app"
