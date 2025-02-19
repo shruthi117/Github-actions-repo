@@ -1,4 +1,4 @@
-name: Deploy Node.js App to EC2
+name: Deploy Node.js App to EC2 via CodeDeploy
 
 on:
   push:
@@ -12,11 +12,11 @@ jobs:
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      ECR_URI: ${{ secrets.ECR_URI }}
-      REPO_NAME: ${{ secrets.REPO_NAME }}
-      SERVER_PUBLIC_IP: ${{ secrets.SERVER_PUBLIC_IP }}
-      EC2_KEY: ${{ secrets.EC2_KEY }}
-      AWS_REGION: ${{secrets.AWS_REGION}}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      S3_BUCKET: "demo-githubactionsbucket"  # Your existing S3 bucket
+      CODEDEPLOY_APP: "test-app"  # Your existing CodeDeploy application
+      CODEDEPLOY_GROUP: "test-deployment-group"  # Your existing deployment group
+      
 
     steps:
       - name: Checkout Code
@@ -25,55 +25,30 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            aws-region: ${{secrets.AWS_REGION}}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Log in to Amazon ECR
-        id: login-ecr
+      - name: Create Deployment Package
         run: |
-          aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin $ECR_URI
+          echo "📦 Creating deployment package..."
+          zip -r deploy.zip . -x "*.git*" ".github/*" "*.DS_Store"
 
-      - name: Build Docker Image
+      - name: Upload to S3
         run: |
-          docker build -t $REPO_NAME .
-          #docker build -t demorepo .
-          docker tag $REPO_NAME:latest $ECR_URI/$REPO_NAME:latest
-          #docker tag demorepo:latest 879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest
-
-      - name: Show Docker Images
-        run: |
-          docker images
-
-      - name: Push Docker Image to ECR
-        run: |
-          #docker push $ECR_URI:latest
-          docker push 879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          S3_KEY="deploy-${TIMESTAMP}.zip"
+          echo "🚀 Uploading deployment package to S3: s3://$S3_BUCKET/$S3_KEY"
           
+          aws s3 cp deploy.zip s3://$S3_BUCKET/$S3_KEY
           
-      - name: Set up SSH key for EC2
+          echo "S3_KEY=$S3_KEY" >> $GITHUB_ENV
+
+      - name: Trigger Deployment in CodeDeploy
         run: |
-          echo "$EC2_KEY" > ec2_key.pem
-          chmod 400 ec2_key.pem
-
-      - name: Deploy Docker Image to EC2
-        run: |
-         ssh -o StrictHostKeyChecking=no -i ec2_key.pem ubuntu@$SERVER_PUBLIC_IP << 'EOF'
-         set -e  # Exit script on any error
-
-         echo "🔐 Authenticating with AWS ECR..."
-         aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin 879381243591.dkr.ecr.ap-south-1.amazonaws.com
-
-         echo "⬇️ Pulling latest image..."
-         sudo docker pull 879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest
-
-         echo "🛑 Stopping existing container (if running)..."
-         sudo docker stop demorepo-container || true
-
-         echo "🗑 Removing old container (if exists)..."
-         sudo docker rm demorepo-container || true
-
-         echo "🚀 Starting new container..."
-         sudo docker run -d --restart always -p 80:3000 --name demorepo-container 879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest
-         EOF
-
+          echo "🚀 Starting deployment in AWS CodeDeploy..."
+          
+          aws deploy create-deployment \
+            --application-name "$CODEDEPLOY_APP" \
+            --deployment-group-name "$CODEDEPLOY_GROUP" \
+            --s3-location bucket=$S3_BUCKET,key=$S3_KEY,bundleType=zip
