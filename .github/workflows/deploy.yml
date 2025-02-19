@@ -16,6 +16,9 @@ jobs:
       S3_BUCKET: "demo-githubactionsbucket"  # Your existing S3 bucket
       CODEDEPLOY_APP: "test-app"  # Your existing CodeDeploy application
       CODEDEPLOY_GROUP: "test-deployment-group"  # Your existing deployment group
+      EC2_USER: "ubuntu"
+      SERVER_IP: ${{ secrets.SERVER_PUBLIC_IP }}
+      EC2_KEY: ${{ secrets.EC2_KEY }}
 
     steps:
       - name: Checkout Code
@@ -48,6 +51,26 @@ jobs:
           aws s3 cp deploy.zip s3://$S3_BUCKET/$S3_KEY
           
           echo "S3_KEY=$S3_KEY" >> $GITHUB_ENV
+
+      - name: Set up SSH key for EC2
+        run: |
+          echo "$EC2_KEY" > ec2_key.pem
+          chmod 400 ec2_key.pem
+
+      - name: Run AfterInstall Steps on EC2
+        run: |
+          echo "🔧 Running AfterInstall steps directly on EC2..."
+          ssh -o StrictHostKeyChecking=no -i ec2_key.pem $EC2_USER@$SERVER_IP << 'EOF'
+          set -e  # Exit on error
+
+          echo "🔐 Authenticating AWS ECR..."
+          aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin 879381243591.dkr.ecr.ap-south-1.amazonaws.com
+
+          echo "⬇️ Pulling latest Docker image..."
+          sudo docker pull 879381243591.dkr.ecr.ap-south-1.amazonaws.com/demorepo:latest
+
+          echo "✅ AfterInstall steps completed!"
+          EOF
 
       - name: Trigger Deployment in CodeDeploy
         run: |
